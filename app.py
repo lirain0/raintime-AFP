@@ -99,11 +99,14 @@ def index():
 def predict():
     try:
         data = request.get_json()
-        sequence = data.get('sequence', '').strip()
+        sequence = data.get('sequence', '')
+
+        if not sequence:
+            return jsonify({'error': 'No sequence provided'}), 400
 
         result = predict_single(sequence)
         if result is None:
-            return jsonify({'error': 'Invalid sequence. Only 20 standard amino acids allowed.'}), 400
+            return jsonify({'error': 'Invalid sequence'}), 400
 
         return jsonify(result)
     except Exception as e:
@@ -116,42 +119,25 @@ def predict_batch():
         data = request.get_json()
         sequences = data.get('sequences', [])
 
+        if not sequences:
+            return jsonify({'error': 'No sequences provided'}), 400
+
         results = []
         for seq in sequences:
             result = predict_single(seq)
             if result:
                 results.append(result)
 
-        return jsonify({'results': results, 'count': len(results)})
+        return jsonify({'results': results})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/status')
-def status():
-    return jsonify({
-        'status': 'running',
-        'model_loaded': model is not None,
-        'threshold': THRESHOLD,
-        'device': str(DEVICE)
-    })
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok', 'model_loaded': model is not None})
 
 
 if __name__ == '__main__':
-    print("=" * 60)
-    print("AFP-Predictor V4 - Deployment Version")
-    print("=" * 60)
-
-    try:
-        load_model()
-        print("System ready")
-        print("=" * 60)
-    except Exception as e:
-        print(f"Warning: {e}")
-        print("System will start without model loaded")
-
-    print("\nStarting server...")
-    print("Access: http://127.0.0.1:5000")
-    print("Press Ctrl+C to stop\n")
-
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    load_model()
+    app.run(host='0.0.0.0', port=5000, debug=True)

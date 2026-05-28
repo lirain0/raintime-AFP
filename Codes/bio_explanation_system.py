@@ -50,60 +50,82 @@ class BioExplanationSystem:
             'model_probability': model_probability,
             'confidence_level': confidence['level'],
             'reliability_score': confidence['score'],
-            'features': features,
             'explanation': explanation,
         }
 
     def _analyze_basic(self, seq):
+        """Basic features"""
         return {
             'length': len(seq),
             'molecular_weight': sum(self.aa_properties[aa]['size'] for aa in seq if aa in self.aa_properties),
             'unique_aa_count': len(set(seq)),
-            'aa_diversity': len(set(seq)) / len(seq) if seq else 0,
         }
 
     def _analyze_composition(self, seq):
+        """Amino acid composition"""
         aa_count = Counter(seq)
         total = len(seq)
+        cationic = sum(aa_count.get(aa, 0) for aa in ['K', 'R', 'H'])
+        hydrophobic = sum(aa_count.get(aa, 0) for aa in ['L', 'I', 'V', 'F', 'W', 'M', 'A'])
         return {
-            aa: {'count': count, 'percentage': round(count / total * 100, 2)}
-            for aa, count in aa_count.items()
+            'cationic_ratio': cationic / total if total > 0 else 0,
+            'hydrophobic_ratio': hydrophobic / total if total > 0 else 0,
         }
 
     def _analyze_physicochemical(self, seq):
-        hydrophobicity = [self.aa_properties[aa]['hydrophobicity'] for aa in seq if aa in self.aa_properties]
-        charge = [self.aa_properties[aa]['charge'] for aa in seq if aa in self.aa_properties]
+        """Physicochemical properties"""
+        props = [self.aa_properties.get(aa, {}) for aa in seq]
+        hydrophobicities = [p.get('hydrophobicity', 0) for p in props]
+        charges = [p.get('charge', 0) for p in props]
         return {
-            'avg_hydrophobicity': round(np.mean(hydrophobicity), 3) if hydrophobicity else 0,
-            'net_charge': round(sum(charge), 2),
-            'positive_residues': sum(1 for c in charge if c > 0),
-            'negative_residues': sum(1 for c in charge if c < 0),
+            'hydrophobicity_mean': np.mean(hydrophobicities) if hydrophobicities else 0,
+            'net_charge': sum(charges),
         }
 
-    def _evaluate_confidence(self, seq, prob, features):
-        score = 50
-        basic = features['basic']
-        if 10 <= basic['length'] <= 50:
-            score += 15
-        if basic['aa_diversity'] >= 0.3:
-            score += 10
-        phy = features['physicochemical']
-        if phy['net_charge'] > 0:
-            score += 10
-        if abs(prob - 0.5) > 0.3:
-            score += 15
-        level = 'A' if score >= 80 else 'B' if score >= 60 else 'C' if score >= 40 else 'D'
-        return {'score': min(score, 100), 'level': level}
-
-    def _generate_explanation(self, seq, prob, features, confidence):
-        parts = []
-        basic = features['basic']
-        phy = features['physicochemical']
-        parts.append(f"Sequence length: {basic['length']} amino acids")
-        parts.append(f"Net charge: {phy['net_charge']:+} (at pH 7.0)")
-        parts.append(f"Hydrophobicity: {phy['avg_hydrophobicity']}")
-        if confidence['level'] in ['A', 'B']:
-            parts.append("High confidence prediction - reliable for screening")
+    def _evaluate_confidence(self, seq, model_prob, features):
+        """Evaluate confidence"""
+        score = 0
+        reasons = []
+        model_confidence = max(model_prob, 1 - model_prob)
+        if model_confidence >= 0.95:
+            score += 40
+            reasons.append("High model confidence")
+        elif model_confidence >= 0.85:
+            score += 30
+            reasons.append("Medium-high model confidence")
+        elif model_confidence >= 0.70:
+            score += 20
         else:
-            parts.append("Moderate confidence - experimental validation recommended")
-        return "; ".join(parts)
+            score += 10
+            reasons.append("Low model confidence")
+
+        comp = features['composition']
+        if comp['cationic_ratio'] >= 0.15:
+            score += 20
+            reasons.append("High cationic content")
+
+        if score >= 80:
+            level = "A (High)"
+        elif score >= 60:
+            level = "B (Medium)"
+        elif score >= 40:
+            level = "C (Low)"
+        else:
+            level = "D (Very Low)"
+
+        return {'score': score, 'level': level, 'reasons': reasons}
+
+    def _generate_explanation(self, seq, model_prob, features, confidence):
+        """Generate explanation"""
+        pred_class = "AFP" if model_prob >= 0.57 else "Non-AFP"
+        lines = [
+            f"Prediction: {pred_class}",
+            f"Model Confidence: {model_prob:.1%}",
+            f"Reliability: {confidence['level']} (Score: {confidence['score']}/100)",
+            "",
+            "Key Features:",
+            f"- Length: {len(seq)} amino acids",
+            f"- Net Charge: +{features['physicochemical']['net_charge']:.1f}",
+            f"- Cationic Ratio: {features['composition']['cationic_ratio']:.1%}",
+        ]
+        return "\n".join(lines)
