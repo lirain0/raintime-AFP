@@ -5,6 +5,9 @@ Training Script - V4 with Data Augmentation
 
 import os
 import sys
+
+# 获取项目根目录
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 import pandas as pd
 import numpy as np
 import torch
@@ -36,12 +39,12 @@ def load_all_data():
     all_sequences, all_labels = [], []
     
     simple_datasets = [
-        ('dataset/DeepAFP-main-train.csv', 'Main-Train'),
-        ('dataset/DeepAFP-main-test.csv', 'Main-Test'),
-        ('dataset/DeepAFP-Set1-train.csv', 'Set1-Train'),
-        ('dataset/DeepAFP-Set1-test.csv', 'Set1-Test'),
-        ('dataset/DeepAFP-Set2-train.csv', 'Set2-Train'),
-        ('dataset/DeepAFP-Set2-test.csv', 'Set2-Test'),
+        (os.path.join(PROJECT_ROOT, 'dataset', 'DeepAFP-main-train.csv'), 'Main-Train'),
+        (os.path.join(PROJECT_ROOT, 'dataset', 'DeepAFP-main-test.csv'), 'Main-Test'),
+        (os.path.join(PROJECT_ROOT, 'dataset', 'DeepAFP-Set1-train.csv'), 'Set1-Train'),
+        (os.path.join(PROJECT_ROOT, 'dataset', 'DeepAFP-Set1-test.csv'), 'Set1-Test'),
+        (os.path.join(PROJECT_ROOT, 'dataset', 'DeepAFP-Set2-train.csv'), 'Set2-Train'),
+        (os.path.join(PROJECT_ROOT, 'dataset', 'DeepAFP-Set2-test.csv'), 'Set2-Test'),
     ]
     
     for filepath, name in simple_datasets:
@@ -230,13 +233,15 @@ def main():
             
             if acc > best_acc:
                 best_acc = acc
-                torch.save(model.state_dict(), 'model/afp_model_augmented.pth')
+                model_save_path = os.path.join(PROJECT_ROOT, 'model', 'afp_model_augmented.pth')
+                torch.save(model.state_dict(), model_save_path)
                 print(f"  -> Saved best model (acc={acc:.4f})")
             
             scheduler.step(acc)
     
     # Final evaluation
-    model.load_state_dict(torch.load('model/afp_model_augmented.pth'))
+    model_load_path = os.path.join(PROJECT_ROOT, 'model', 'afp_model_augmented.pth')
+    model.load_state_dict(torch.load(model_load_path))
     labels, probs = evaluate(model, test_loader)
     threshold = find_optimal_threshold(labels, probs)
     preds = (probs >= threshold).astype(int)

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - AFP预测平台{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="auth-icon">📝</span>
+            <h2>用户注册</h2>
+            <p>创建账号以使用全部功能</p>
+        </div>
+        
+        <form class="auth-form" method="POST" action="/register">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" class="form-input" 
+                    placeholder="请输入用户名" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">邮箱（可选）</label>
+                <input type="email" id="email" name="email" class="form-input" 
+                    placeholder="请输入邮箱">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" class="form-input" 
+                    placeholder="请输入密码（至少6位）" required minlength="6">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-large btn-block">注册</button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>已有账号？ <a href="/login">立即登录</a></p>
+            <p class="back-link"><a href="/">← 返回首页</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

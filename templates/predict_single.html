@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}单序列预测 - AFP预测平台{% endblock %}
+
+{% block content %}
+<div class="container predict-container">
+    <h1 class="page-title">单序列预测</h1>
+    <p class="page-subtitle">输入肽序列，获取AI预测结果与详细生物学解释</p>
+
+    <div class="predict-layout">
+        <!-- 左侧输入区 -->
+        <div class="input-section">
+            <div class="input-card">
+                <h3>序列输入</h3>
+                <div class="form-group">
+                    <label for="sequence">肽序列（仅包含20种标准氨基酸）</label>
+                    <textarea id="sequence" class="sequence-input" rows="4" 
+                        placeholder="例如: GIGKFLHSAKKFGKAFVGEIMNS"></textarea>
+                    <div class="input-hint">
+                        <span>支持氨基酸: A, C, D, E, F, G, H, I, K, L, M, N, P, Q, R, S, T, V, W, Y</span>
+                        <span id="char-count">0 个字符</span>
+                    </div>
+                </div>
+                <button id="predict-btn" class="btn btn-primary btn-large">
+                    <span class="btn-text">开始预测</span>
+                    <span class="btn-loading" style="display: none;">预测中...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 右侧结果区（初始隐藏） -->
+        <div class="result-section" id="result-section" style="display: none;">
+            <div class="result-card">
+                <h3>预测结果</h3>
+                
+                <!-- 预测概览 -->
+                <div class="prediction-overview">
+                    <div class="pred-item">
+                        <span class="pred-label">预测类别</span>
+                        <span class="pred-value" id="pred-class">-</span>
+                    </div>
+                    <div class="pred-item">
+                        <span class="pred-label">AFP概率</span>
+                        <span class="pred-value" id="pred-prob">-</span>
+                    </div>
+                    <div class="pred-item">
+                        <span class="pred-label">分类阈值</span>
+                        <span class="pred-value">0.57</span>
+                    </div>
+                </div>
+
+                <!-- 置信度评估 -->
+                <div class="confidence-section">
+                    <h4>置信度评估</h4>
+                    <div class="confidence-display">
+                        <div class="confidence-score" id="confidence-score">-</div>
+                        <div class="confidence-level" id="confidence-level">-</div>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidence-fill"></div>
+                    </div>
+                </div>
+
+                <!-- 可视化区域 -->
+                <div class="visualization-section">
+                    <h4>详细分析报告</h4>
+                    <div class="visualization-container">
+                        <img id="visualization-img" src="" alt="分析可视化">
+                    </div>
+                </div>
+
+                <!-- 文本解释 -->
+                <div class="explanation-section">
+                    <h4>生物学解释</h4>
+                    <div class="explanation-text" id="explanation-text">
+                        <!-- 动态填充 -->
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="save-btn">保存到历史记录</button>
+                    <button class="btn btn-secondary" onclick="window.print()">打印报告</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sequenceInput = document.getElementById('sequence');
+    const predictBtn = document.getElementById('predict-btn');
+    const resultSection = document.getElementById('result-section');
+    const charCount = document.getElementById('char-count');
+
+    // 字符计数
+    sequenceInput.addEventListener('input', function() {
+        charCount.textContent = this.value.length + ' 个字符';
+    });
+
+    // 从URL参数自动填入序列（来自历史记录跳转）
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoSeq = urlParams.get('sequence');
+    const fromHistory = urlParams.get('from_history');
+    
+    if (autoSeq) {
+        sequenceInput.value = autoSeq.toUpperCase();
+        charCount.textContent = autoSeq.length + ' 个字符';
+        // 延迟自动触发预测
+        setTimeout(() => {
+            predictBtn.click();
+        }, 500);
+    }
+
+    // 预测按钮
+    predictBtn.addEventListener('click', async function() {
+        const sequence = sequenceInput.value.trim().toUpperCase();
+        
+        if (!sequence) {
+            alert('请输入序列');
+            return;
+        }
+
+        // 显示加载状态
+        predictBtn.querySelector('.btn-text').style.display = 'none';
+        predictBtn.querySelector('.btn-loading').style.display = 'inline';
+        predictBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/predict/single', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sequence: sequence })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert('预测失败: ' + data.error);
+                return;
+            }
+
+            // 显示结果
+            displayResult(data);
+            resultSection.style.display = 'block';
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            alert('请求失败: ' + error.message);
+        } finally {
+            predictBtn.querySelector('.btn-text').style.display = 'inline';
+            predictBtn.querySelector('.btn-loading').style.display = 'none';
+            predictBtn.disabled = false;
+        }
+    });
+
+    function displayResult(data) {
+        const pred = data.prediction;
+        const exp = data.explanation;
+
+        // 预测概览
+        document.getElementById('pred-class').textContent = pred.is_afp ? '抗真菌肽 (AFP)' : '非抗真菌肽 (non-AFP)';
+        document.getElementById('pred-class').className = 'pred-value ' + (pred.is_afp ? 'positive' : 'negative');
+        document.getElementById('pred-prob').textContent = (pred.probability * 100).toFixed(2) + '%';
+
+        // 置信度
+        document.getElementById('confidence-score').textContent = exp.reliability_score;
+        document.getElementById('confidence-level').textContent = exp.confidence_level;
+        document.getElementById('confidence-fill').style.width = exp.reliability_score + '%';
+        
+        // 设置颜色
+        const fill = document.getElementById('confidence-fill');
+        if (exp.reliability_score >= 80) {
+            fill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+        } else if (exp.reliability_score >= 60) {
+            fill.style.background = 'linear-gradient(90deg, #FFC107, #FFEB3B)';
+        } else if (exp.reliability_score >= 40) {
+            fill.style.background = 'linear-gradient(90deg, #FF9800, #FFC107)';
+        } else {
+            fill.style.background = 'linear-gradient(90deg, #f44336, #FF9800)';
+        }
+
+        // 可视化图片
+        if (data.visualization) {
+            document.getElementById('visualization-img').src = data.visualization;
+        }
+
+        // 文本解释
+        document.getElementById('explanation-text').innerHTML = formatExplanation(exp.explanation);
+    }
+
+    function formatExplanation(text) {
+        // 将纯文本转换为HTML格式
+        return text.split('\n').map(line => {
+            if (line.startsWith('【') && line.endsWith('】')) {
+                return `<h5>${line}</h5>`;
+            } else if (line.startsWith('•') || line.startsWith('✓') || line.startsWith('⚠')) {
+                return `<p class="explanation-item">${line}</p>`;
+            } else if (line.trim() === '') {
+                return '';
+            } else {
+                return `<p>${line}</p>`;
+            }
+        }).join('');
+    }
+
+    // 保存当前预测结果
+    let currentPredictionData = null;
+    
+    // 修改 displayResult 函数以保存数据
+    const originalDisplayResult = displayResult;
+    displayResult = function(data) {
+        currentPredictionData = data;
+        return originalDisplayResult(data);
+    };
+
+    // 保存按钮 - 手动保存
+    document.getElementById('save-btn').addEventListener('click', async function() {
+        if (!currentPredictionData) {
+            alert('没有可保存的预测结果');
+            return;
+        }
+        
+        // 显示保存中状态
+        const saveBtn = document.getElementById('save-btn');
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = '保存中...';
+        saveBtn.disabled = true;
+        
+        try {
+            const saveData = {
+                name: '单序列预测: ' + currentPredictionData.sequence.substring(0, 20) + (currentPredictionData.sequence.length > 20 ? '...' : ''),
+                type: 'single',  // 标记为单序列预测
+                results: [{
+                    sequence_id: '1',
+                    sequence: currentPredictionData.sequence,
+                    prediction: currentPredictionData.prediction,
+                    explanation: currentPredictionData.explanation
+                }]
+            };
+            
+            const response = await fetch('/api/save_prediction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(saveData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                alert('保存失败: ' + data.error);
+            } else {
+                let msg = '保存成功！';
+                if (data.prediction_name) {
+                    msg += '\n保存名称: ' + data.prediction_name;
+                }
+                msg += '\n您可以在"历史记录"页面查看。';
+                alert(msg);
+                saveBtn.textContent = '已保存 ✓';
+                setTimeout(() => {
+                    saveBtn.textContent = originalText;
+                }, 2000);
+            }
+        } catch (error) {
+            alert('保存失败: ' + error.message);
+        } finally {
+            saveBtn.disabled = false;
+        }
+    });
+});
+</script>
+{% endblock %}

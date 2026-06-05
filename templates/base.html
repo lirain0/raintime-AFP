@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AFP预测平台{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">🧬</span>
+                <span class="logo-text">AFP Predictor V4</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">首页</a></li>
+                <li><a href="/predict/single" class="nav-link {% if request.endpoint == 'predict_single' %}active{% endif %}">单序列预测</a></li>
+                <li><a href="/predict/batch" class="nav-link {% if request.endpoint == 'predict_batch' %}active{% endif %}">批量预测</a></li>
+                {% if session.user_id %}
+                <li><a href="/history" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">历史记录</a></li>
+                <li class="threshold-control">
+                    <span class="threshold-label">阈值:</span>
+                    <input type="range" id="threshold-slider" min="0.1" max="0.9" step="0.01" value="0.57" class="threshold-slider">
+                    <span id="threshold-value" class="threshold-value">0.57</span>
+                    <button id="threshold-reset" class="threshold-reset" title="重置为默认值">↺</button>
+                </li>
+                <li><a href="/logout" class="nav-link">退出 ({{ session.username }})</a></li>
+                {% else %}
+                <li><a href="/login" class="nav-link btn-primary">登录</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 消息提示 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 AFP预测平台 V4 | 准确率 95.52% | 600维特征分析</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

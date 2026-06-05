@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}用户仪表盘 - AFP预测平台{% endblock %}
+
+{% block content %}
+<div class="container dashboard-container">
+    <div class="dashboard-header">
+        <h1>👋 欢迎回来，{{ username }}！</h1>
+        <p class="dashboard-subtitle">这是您的个人仪表盘，可以快速访问所有功能</p>
+    </div>
+
+    <!-- 快捷操作卡片 -->
+    <div class="dashboard-grid">
+        <a href="/predict/single" class="dashboard-card card-primary">
+            <div class="card-icon">🎯</div>
+            <h3>单序列预测</h3>
+            <p>输入单个氨基酸序列进行抗真菌肽预测</p>
+            <span class="card-arrow">→</span>
+        </a>
+
+        <a href="/predict/batch" class="dashboard-card card-success">
+            <div class="card-icon">📁</div>
+            <h3>批量预测</h3>
+            <p>上传CSV/FASTA文件批量分析多个序列</p>
+            <span class="card-arrow">→</span>
+        </a>
+
+        <a href="/history" class="dashboard-card card-info">
+            <div class="card-icon">📊</div>
+            <h3>历史记录</h3>
+            <p>查看您的所有预测记录和详细报告</p>
+            <span class="card-arrow">→</span>
+        </a>
+
+        <a href="/logout" class="dashboard-card card-warning">
+            <div class="card-icon">🚪</div>
+            <h3>退出登录</h3>
+            <p>安全退出当前账号</p>
+            <span class="card-arrow">→</span>
+        </a>
+    </div>
+
+    <!-- 平台信息 -->
+    <div class="dashboard-info">
+        <h2>📈 平台统计</h2>
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-value">95.52%</div>
+                <div class="stat-label">预测准确率</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">600+</div>
+                <div class="stat-label">分析维度</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">V4</div>
+                <div class="stat-label">当前版本</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用提示 -->
+    <div class="dashboard-tips">
+        <h2>💡 快速开始</h2>
+        <div class="tips-list">
+            <div class="tip-item">
+                <span class="tip-number">1</span>
+                <p>点击<strong>单序列预测</strong>输入氨基酸序列（如：GIGKFLHSAKKFGKAFVGEIMNS）</p>
+            </div>
+            <div class="tip-item">
+                <span class="tip-number">2</span>
+                <p>点击<strong>批量预测</strong>上传CSV或FASTA格式文件进行批量分析</p>
+            </div>
+            <div class="tip-item">
+                <span class="tip-number">3</span>
+                <p>在<strong>历史记录</strong>中查看所有预测结果并导出报告</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-container {
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.dashboard-header h1 {
+    font-size: 2.5rem;
+    color: #1e3a5f;
+    margin-bottom: 10px;
+}
+
+.dashboard-subtitle {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    margin-bottom: 50px;
+}
+
+.dashboard-card {
+    display: block;
+    padding: 30px;
+    border-radius: 16px;
+    text-decoration: none;
+    color: white;
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+}
+
+.card-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.card-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.card-warning {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.card-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.dashboard-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.dashboard-card p {
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+.card-arrow {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    font-size: 1.5rem;
+    opacity: 0.5;
+}
+
+.dashboard-info {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 16px;
+    margin-bottom: 40px;
+}
+
+.dashboard-info h2 {
+    margin-bottom: 20px;
+    color: #1e3a5f;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stat-box {
+    text-align: center;
+    padding: 20px;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.stat-label {
+    color: #666;
+    margin-top: 5px;
+}
+
+.dashboard-tips {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.dashboard-tips h2 {
+    margin-bottom: 20px;
+    color: #1e3a5f;
+}
+
+.tips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.tip-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.tip-number {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.tip-item p {
+    margin: 0;
+    color: #555;
+}
+
+.tip-item strong {
+    color: #667eea;
+}
+</style>
+{% endblock %}

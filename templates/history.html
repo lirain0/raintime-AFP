@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}历史记录 - AFP预测平台{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">预测历史记录</h1>
+    <p class="page-subtitle">查看和管理您的预测记录</p>
+
+    {% if records %}
+    <div class="history-list">
+        {% for record in records %}
+        <div class="history-card">
+            <div class="history-header">
+                <div class="history-info">
+                    <h4>{{ record.prediction_name or '未命名预测' }}</h4>
+                    <span class="history-date">{{ record.created_at }}</span>
+                </div>
+                <div class="history-stats">
+                    <span class="stat-badge type-{{ record.prediction_type or 'single' }}">{{ '批量' if record.prediction_type == 'batch' else '单次' }}</span>
+                    <span class="stat-badge">{{ record.sequence_count }} 个序列</span>
+                </div>
+            </div>
+            <div class="history-actions">
+                <a href="/api/history/{{ record.id }}" class="btn btn-small">查看详情</a>
+                <a href="/api/history/{{ record.id }}/visualize" class="btn btn-small btn-primary">查看可视化详情</a>
+                <a href="/api/history/{{ record.id }}/export" class="btn btn-small btn-secondary">导出CSV</a>
+                <button class="btn btn-small btn-danger delete-btn" data-id="{{ record.id }}">删除</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>暂无历史记录</h3>
+        <p>开始您的第一次预测吧</p>
+        <a href="/predict/single" class="btn btn-primary">开始预测</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 为所有删除按钮绑定事件
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const predictionId = this.dataset.id;
+            const card = this.closest('.history-card');
+            
+            if (!confirm('确定要删除这条历史记录吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            try {
+                this.disabled = true;
+                this.textContent = '删除中...';
+                
+                const response = await fetch(`/api/history/${predictionId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 删除成功，移除卡片
+                    card.style.transition = 'opacity 0.3s ease';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                    
+                    // 如果没有记录了就刷新页面
+                    if (document.querySelectorAll('.history-card').length === 1) {
+                        setTimeout(() => location.reload(), 500);
+                    }
+                } else {
+                    alert('删除失败: ' + (data.error || '未知错误'));
+                    this.disabled = false;
+                    this.textContent = '删除';
+                }
+            } catch (error) {
+                alert('删除失败: ' + error.message);
+                this.disabled = false;
+                this.textContent = '删除';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

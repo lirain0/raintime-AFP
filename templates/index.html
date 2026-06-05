@@ -1,152 +1,198 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AFP-Predictor V4</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-        .header h1 { font-size: 3rem; margin-bottom: 10px; }
-        .header p { font-size: 1.2rem; opacity: 0.9; }
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-        button {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        button:hover { opacity: 0.9; }
-        .result { margin-top: 20px; }
-        .result-item {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        .afp { background: #d4edda; color: #155724; }
-        .non-afp { background: #f8d7da; color: #721c24; }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-        }
-        .stat-number { font-size: 2rem; font-weight: bold; color: #667eea; }
-        .stat-label { color: #666; margin-top: 5px; }
-    </style>
+    <title>AFP预测平台 - V4</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>AFP-Predictor V4</h1>
-            <p>Antifungal Peptide Prediction Platform</p>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">🧬</span>
+                <span class="logo-text">AFP Predictor V4</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link active">首页</a></li>
+                <li><a href="/predict/single" class="nav-link">单序列预测</a></li>
+                <li><a href="/predict/batch" class="nav-link">批量预测</a></li>
+                {% if session.user_id %}
+                <li><a href="/history" class="nav-link">历史记录</a></li>
+                <li><a href="/logout" class="nav-link">退出 ({{ session.username }})</a></li>
+                {% else %}
+                <li><a href="/login" class="nav-link btn-primary">登录</a></li>
+                {% endif %}
+            </ul>
         </div>
+    </nav>
 
-        <div class="card">
-            <h2>Single Sequence Prediction</h2>
-            <div class="input-group">
-                <input type="text" id="sequence" placeholder="Enter amino acid sequence (e.g., GIGKFLHSAKKFGKAFVGEIMNS)">
-                <button onclick="predict()">Predict</button>
-            </div>
-            <div id="result" class="result"></div>
-        </div>
-
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number">95.52%</div>
-                <div class="stat-label">Accuracy</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">600+</div>
-                <div class="stat-label">Dimensions</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">&lt;1s</div>
-                <div class="stat-label">Response Time</div>
+    <!-- Hero区域 -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">抗真菌肽智能预测平台</h1>
+            <p class="hero-subtitle">
+                基于深度学习与多维度生物学解释性分析<br>
+                准确率 95.52% | 600维特征分析 | 四级可靠性评估
+            </p>
+            <div class="hero-buttons">
+                <a href="/predict/single" class="btn btn-large btn-primary">开始预测</a>
+                <a href="#features" class="btn btn-large btn-secondary">了解更多</a>
             </div>
         </div>
-    </div>
+        <div class="hero-visual">
+            <div class="dna-animation">
+                <div class="dna-strand"></div>
+                <div class="dna-strand"></div>
+            </div>
+        </div>
+    </section>
 
-    <script>
-        async function predict() {
-            const sequence = document.getElementById('sequence').value;
-            if (!sequence) {
-                alert('Please enter a sequence');
-                return;
-            }
+    <!-- 统计指标 -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">95.52%</div>
+                    <div class="stat-label">预测准确率</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">600+</div>
+                    <div class="stat-label">分析维度</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">&lt;1s</div>
+                    <div class="stat-label">响应时间</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-label">并发支持</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sequence })
-                });
-                const data = await response.json();
+    <!-- 功能特性 -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">平台特性</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>高精度预测</h3>
+                    <p>基于GAT+Transformer深度学习架构，准确率达95.52%，显著优于现有工具</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔬</div>
+                    <h3>深度解释</h3>
+                    <p>600维生物学特征分析，四级可靠性评级，自动生成详细解释报告</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>可视化展示</h3>
+                    <p>置信度仪表盘、特征雷达图、序列标注等多维度可视化</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📁</div>
+                    <h3>批量处理</h3>
+                    <p>支持CSV/FASTA/TXT格式文件上传，批量预测与结果导出</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💻</div>
+                    <h3>本地部署</h3>
+                    <p>Windows平台本地化部署，数据隐私保护，无需联网</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>响应式设计</h3>
+                    <p>支持桌面端与移动端访问，自适应布局</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-                const resultDiv = document.getElementById('result');
-                if (data.is_afp) {
-                    resultDiv.innerHTML = `
-                        <div class="result-item afp">
-                            <h3>AFP Detected</h3>
-                            <p>Probability: ${data.afp_probability}%</p>
-                            <p>Confidence: ${data.confidence_level}</p>
-                        </div>
-                    `;
-                } else {
-                    resultDiv.innerHTML = `
-                        <div class="result-item non-afp">
-                            <h3>Non-AFP</h3>
-                            <p>Probability: ${data.afp_probability}%</p>
-                            <p>Confidence: ${data.confidence_level}</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                alert('Prediction failed: ' + error.message);
-            }
-        }
-    </script>
+    <!-- 使用流程 -->
+    <section class="workflow">
+        <div class="container">
+            <h2 class="section-title">使用流程</h2>
+            <div class="workflow-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>输入序列</h4>
+                        <p>输入或上传肽序列</p>
+                    </div>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>模型预测</h4>
+                        <p>深度学习模型分析</p>
+                    </div>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>置信度评估</h4>
+                        <p>600维特征分析</p>
+                    </div>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>查看报告</h4>
+                        <p>可视化结果展示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术栈 -->
+    <section class="tech-stack">
+        <div class="container">
+            <h2 class="section-title">技术架构</h2>
+            <div class="tech-grid">
+                <div class="tech-category">
+                    <h4>深度学习</h4>
+                    <div class="tech-tags">
+                        <span class="tech-tag">PyTorch</span>
+                        <span class="tech-tag">GAT</span>
+                        <span class="tech-tag">Transformer</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h4>后端服务</h4>
+                    <div class="tech-tags">
+                        <span class="tech-tag">Flask</span>
+                        <span class="tech-tag">SQLite</span>
+                        <span class="tech-tag">Python</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h4>前端界面</h4>
+                    <div class="tech-tags">
+                        <span class="tech-tag">HTML5</span>
+                        <span class="tech-tag">CSS3</span>
+                        <span class="tech-tag">JavaScript</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 AFP预测平台 V4 | 基于深度学习与多维度生物学解释性分析</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
